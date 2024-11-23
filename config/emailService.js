@@ -14,15 +14,15 @@ const transporter = nodemailer.createTransport({
 });
 
 // Define the email options
-const sendVerification = (email, token) => {
-  const verifUrl = `http://localhost:${process.env.PORT}/auth/verify_email?email=${email}&token=${token}`;
+const sendVerification = (email, token, action) => {
+  const verifUrl = `http://localhost:${process.env.PORT}/auth/verify_email?email=${email}&token=${token}&action=${action}`;
 
   const mailOptions = {
     from: process.env.EMAIL, // Sender's email address
     to: email, // Recipient's email address
     subject: 'Email Verification', // Subject line
     text: `Hello,
-  Please click this link for email verification in an hour: ${verifUrl}`, // Plain text body
+  Please click this link for email verification, expire in 5 minutes: ${verifUrl}`, // Plain text body
   };
 
   // Send the email

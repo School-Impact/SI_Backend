@@ -9,9 +9,10 @@ const currentDate = new Date();
 
 // counting expiredAt
 // currentDate.getTime() + (minutes) * (seconds) * (miliseconds)
-const expiredAt = new Date(currentDate.getTime() + 5 * 60 * 1000); // an hour from now
+const expiredAt = new Date(currentDate.getTime() + 5 * 60 * 1000); // 5 minutes from now
 
 const expiredAtFormat = format(expiredAt, 'yyyy-MM-dd HH:mm:ss');
+// const dateNowAtFormat = format(currentDate, 'yyyy-MM-dd HH:mm:ss');
 
 // counting time difference (in seconds) between expiredAt and now
 const expiresIn = Math.floor((expiredAt - currentDate) / 1000); // in seconds
@@ -37,68 +38,139 @@ const AuthController = {
 
     // Find user by email
     AuthModel.getuser(email, (err, rows) => {
-      if (err) return res.json({ message: err });
+      if (err) return res.status(500).json({ message: err });
       const user = rows[0];
       // console.log(user);
 
       if (user) {
-        // console.log('Email sama');
-        return res.status(400).json({ message: 'Email already exists' });
+        return res.status(400).json({
+          message: 'The email already registered, you can login now!',
+        });
       } else {
         const token = jwt.sign({ email }, process.env.SECRET_KEY, {
           expiresIn: expiresIn,
         });
 
-        AuthModel.email_verif(email, token, expiredAtFormat, (err, rows) => {
-          if (err) return res.json({ message: err });
+        AuthModel.email_register_verif(
+          email,
+          token,
+          expiredAtFormat,
+          (err, rows) => {
+            if (err) return res.status(500).json({ message: err });
 
-          sendVerification(email, token);
+            sendVerification(email, token, 'verify');
 
-          return res
-            .status(200)
-            .json({ message: 'Please check your email for verify!' });
+            return res.status(200).json({
+              message: 'Email has sent, please check your email for verify!',
+            });
+          }
+        );
+      }
+    });
+  },
+
+  // register process
+  forgotPassword: (req, res) => {
+    // console.log(req.body);
+
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: 'Please fill in the email' });
+    }
+
+    // Find user by email
+    AuthModel.getuser(email, (err, rows) => {
+      if (err) return res.status(500).json({ message: err });
+      const user = rows[0];
+      // console.log(user);
+
+      if (user) {
+        const token = jwt.sign({ email }, process.env.SECRET_KEY, {
+          expiresIn: expiresIn,
         });
 
-        // sendVerification(email, token);
+        AuthModel.email_fp_verif(email, token, expiredAtFormat, (err, rows) => {
+          if (err) return res.status(500).json({ message: err });
 
-        // return res
-        //   .status(200)
-        //   .json({ message: 'Please check your email for verify!' });
+          sendVerification(email, token, 'resetPassword');
+
+          return res.status(200).json({
+            message: 'Email has sent, please check your email for verify!',
+          });
+        });
+      } else {
+        return res.status(400).json({
+          message: 'User not found',
+        });
       }
     });
   },
 
   verify_email: (req, res) => {
-    const { email, token } = req.query;
-    // const currentDate = new Date();
+    const { email, token, action } = req.query;
+    // console.log(action);
+    if (action === 'verify') {
+      AuthModel.getemail(email, (err, rows) => {
+        if (err) return res.status(500).json({ message: err });
 
-    // console.log(email);
-    // console.log(token);
-    AuthModel.getemail(email, (err, rows) => {
-      if (err) return res.json({ message: err });
+        const user = rows[0];
 
-      const user = rows[0];
+        if (user.status === 0) {
+          return res.status(400).json({ message: 'Invalid' });
+        }
 
-      if (user.status === 0) {
-        return res.status(400).json({ message: 'Invalid' });
-      }
+        if (currentDate > user.expired_at) {
+          return res.status(400).json({ message: 'Token Expired' });
+        } else {
+          jwt.verify(token, process.env.SECRET_KEY, (err) => {
+            if (err) return res.status(500).json({ message: err });
 
-      if (currentDate > user.expired_at) {
-        return res.status(400).json({ message: 'Token Expired' });
-      } else {
-        jwt.verify(token, process.env.SECRET_KEY, (err) => {
-          if (err) return res.json({ message: err });
-
-          AuthModel.email_verified(email, (err) => {
-            if (err) return res.json({ message: err });
-
-            return res.status(200).json({ message: 'Email Verified!' });
+            AuthModel.email_register_verified(email, (err) => {
+              if (err) {
+                return res.status(500).json({ message: err });
+              } else {
+                return res
+                  .status(200)
+                  .json({ message: 'Email verified, you can register now!' });
+              }
+            });
           });
-        });
-      }
+        }
+      });
+    }
 
-      // console.log(user);
-    });
+    if (action === 'resetPassword') {
+      AuthModel.getrp(email, (err, rows) => {
+        if (err) return res.status(500).json({ message: err });
+
+        const user = rows[0];
+
+        if (user.status === 0) {
+          return res.status(400).json({ message: 'Invalid' });
+        }
+
+        if (currentDate > user.expired_at) {
+          return res.status(400).json({ message: 'Token Expired' });
+        } else {
+          jwt.verify(token, process.env.SECRET_KEY, (err) => {
+            if (err) return res.status(500).json({ message: err });
+
+            AuthModel.email_fp_verified(email, (err) => {
+              if (err) {
+                return res.status(500).json({ message: err });
+              } else {
+                return res.status(200).json({
+                  message: 'Email verified, you can reset password now!',
+                });
+              }
+            });
+          });
+        }
+      });
+    }
+
+    // console.log(user);
   },
 
   data_register: (req, res) => {
@@ -110,30 +182,95 @@ const AuthController = {
       return res.status(400).json({ message: 'Please fill in all fields!' });
     }
 
+    // console.log(user);
     AuthModel.getemail(email, (err, rows) => {
-      if (err) return res.json({ message: err });
+      if (err) return res.status(500).json({ message: err });
 
-      const user = rows[0];
+      const verifiedUser = rows[0];
 
-      if (!user)
-        return res.status(400).json({ message: "You haven't registered yet" });
+      if (!verifiedUser)
+        return res.status(400).json({
+          message: "The email isn't registered yet, please register first!",
+        });
 
       // console.log(user);
 
-      if (user.status === 1) {
-        return res.status(400).json({ message: 'Please verify email first!' });
+      if (verifiedUser.status === 1) {
+        return res.status(400).json({
+          message: "The email isn't verified yet, please verify email first!",
+        });
       }
 
-      AuthModel.register(req.body, dateFormat, (err) => {
-        if (err) return res.json({ message: err });
+      AuthModel.getuser(email, (err, rows) => {
+        if (err) return res.status(500).json({ message: err });
 
-        req.session.user = {
-          name: name,
-          email: email,
-          education: education,
-          phone_number: phone_number,
-        };
-        return res.status(200).json({ message: 'Register Success!' });
+        const user = rows[0];
+
+        // console.log(user);
+
+        if (user.created_at !== null) {
+          return res.status(400).json({
+            message: 'The email already registered, you can login now!',
+          });
+        }
+
+        AuthModel.register(req.body, (err) => {
+          if (err) return res.status(500).json({ message: err });
+
+          req.session.user = {
+            name: name,
+            email: email,
+            education: education,
+            phone_number: phone_number,
+          };
+          return res
+            .status(201)
+            .json({ message: 'Register success, you can login now!' });
+        });
+      });
+    });
+  },
+
+  reset_password: (req, res) => {
+    const { email, password } = req.body;
+    // const currentDate = new Date();
+    // const dateFormat = format(currentDate, 'yyyy-MM-dd HH:mm:ss');
+
+    if (!email || !password) {
+      return res.status(400).json({ message: 'Please fill in all fields!' });
+    }
+
+    AuthModel.getrp(email, (err, rows) => {
+      const resetPassUser = rows[0];
+
+      // console.log(resetPassUser);
+
+      if (resetPassUser.status === 2) {
+        return res.status(400).json({
+          message: "The email isn't verified yet, please verify email first!",
+        });
+      }
+
+      if (resetPassUser.status === 0) {
+        return res.status(400).json({
+          message: 'Please request reset password again!',
+        });
+      }
+
+      AuthModel.getuser(email, (err, rows) => {
+        if (err) return res.status(500).json({ message: err });
+
+        const user = rows[0];
+
+        if (!user) return res.status(400).json({ message: 'User not found!' });
+
+        // console.log(user);
+
+        AuthModel.change_pass(req.body, (err) => {
+          if (err) return res.status(500).json({ message: err });
+
+          return res.status(200).json({ message: 'Reset password success!' });
+        });
       });
     });
   },
@@ -150,6 +287,8 @@ const AuthController = {
 
     // Find user by email
     AuthModel.getuser(email, (err, rows) => {
+      if (err) return res.status(500).json({ message: err });
+
       const user = rows[0];
       // console.log(user.username);
 
@@ -159,19 +298,27 @@ const AuthController = {
 
       // Password check
       bcrypt.compare(password, user.password, (err, result) => {
+        if (err) return res.status(500).json({ message: err });
+
         if (result) {
           // create token
           const token = jwt.sign({ email }, process.env.SECRET_KEY, {
             expiresIn: '1h',
           });
 
-          // create session
-          req.session.user = {
-            fullname: user.fullname,
-            email: user.email,
-          };
-          return res.status(200).json({ message: 'Login Success!', token });
-          // res.redirect("/");
+          AuthModel.login(email, token, (err) => {
+            if (err) return res.status(500).json({ message: err });
+
+            // create session
+            req.session.user = {
+              name: user.name,
+              email: email,
+              education: user.education,
+              phone_number: user.phone_number,
+            };
+            return res.status(200).json({ message: 'Login Success!', token });
+            // res.redirect("/");
+          });
         } else {
           // req.flash("failed", failedInvalid);
           return res.status(400).json({ message: 'Invalid email or password' });
