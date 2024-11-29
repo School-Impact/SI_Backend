@@ -1,11 +1,10 @@
-require('dotenv').config();
-const nodemailer = require('nodemailer');
+require("dotenv").config();
+const nodemailer = require("nodemailer");
 
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  service: "gmail",
   auth: {
     user: process.env.EMAIL,
-    // pass: 'jpqw vaua jmyt heek',
     pass: process.env.EMAIL_PASS,
   },
   tls: {
@@ -20,7 +19,7 @@ const sendVerification = (email, token, action) => {
   const mailOptions = {
     from: process.env.EMAIL, // Sender's email address
     to: email, // Recipient's email address
-    subject: 'Email Verification', // Subject line
+    subject: "Email Verification", // Subject line
     text: `Hello,
   Please click this link for email verification, expire in 5 minutes: ${verifUrl}`, // Plain text body
   };
@@ -30,7 +29,7 @@ const sendVerification = (email, token, action) => {
     if (error) {
       console.log(error);
     } else {
-      console.log('Email sent: ' + info.response);
+      console.log("Email sent: " + info.response);
     }
   });
 };

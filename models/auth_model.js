@@ -1,16 +1,16 @@
-const db = require('./../config/db'); // call and execute db
-const bcrypt = require('bcrypt'); // call bcrypt library
-const { format } = require('date-fns');
+const db = require("./../config/db"); // call and execute db
+const bcrypt = require("bcrypt"); // call bcrypt library
+const { format } = require("date-fns");
 
 const currentDate = new Date();
 
-const dateNowAtFormat = format(currentDate, 'yyyy-MM-dd HH:mm:ss');
+const dateNowAtFormat = format(currentDate, "yyyy-MM-dd HH:mm:ss");
 
 // Create model
 const AuthModel = {
   // Get all
   read: (callback) => {
-    db.query('SELECT * FROM users', (err, result) => {
+    db.query("SELECT * FROM users", (err, result) => {
       if (err) throw err;
       callback(result);
     });
@@ -40,6 +40,15 @@ const AuthModel = {
     db.query(
       `UPDATE users SET
       remember_token = '${token}'
+      WHERE email = '${email}'`,
+      callback
+    );
+  },
+
+  logout: (email, callback) => {
+    db.query(
+      `UPDATE users SET
+      remember_token = ''
       WHERE email = '${email}'`,
       callback
     );

@@ -1,9 +1,9 @@
-const AuthModel = require('../models/auth_model'); // call model
-require('dotenv').config();
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
-const { sendVerification } = require('../config/emailService');
-const { format } = require('date-fns');
+const AuthModel = require("../models/auth_model"); // call model
+require("dotenv").config();
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
+const { sendVerification } = require("../config/emailService");
+const { format } = require("date-fns");
 
 const currentDate = new Date();
 
@@ -11,21 +11,12 @@ const currentDate = new Date();
 // currentDate.getTime() + (minutes) * (seconds) * (miliseconds)
 const expiredAt = new Date(currentDate.getTime() + 5 * 60 * 1000); // 5 minutes from now
 
-const expiredAtFormat = format(expiredAt, 'yyyy-MM-dd HH:mm:ss');
-// const dateNowAtFormat = format(currentDate, 'yyyy-MM-dd HH:mm:ss');
+const expiredAtFormat = format(expiredAt, "yyyy-MM-dd HH:mm:ss");
 
 // counting time difference (in seconds) between expiredAt and now
 const expiresIn = Math.floor((expiredAt - currentDate) / 1000); // in seconds
 
 const AuthController = {
-  // render form
-  // loginForm: (req, res) => {
-  //   res.render("auth032/form_login_032", {
-  //     success: req.flash("success"),
-  //     failed: req.flash("failed"),
-  //   });
-  // },
-
   // register process
   register: (req, res) => {
     // console.log(req.body);
@@ -33,7 +24,7 @@ const AuthController = {
     const { email } = req.body;
 
     if (!email) {
-      return res.status(400).json({ message: 'Please fill in the email' });
+      return res.status(400).json({ message: "Please fill in the email" });
     }
 
     // Find user by email
@@ -44,13 +35,15 @@ const AuthController = {
 
       if (user) {
         return res.status(400).json({
-          message: 'The email already registered, you can login now!',
+          message: "The email already registered, you can login now!",
         });
       } else {
+        // Create token
         const token = jwt.sign({ email }, process.env.SECRET_KEY, {
           expiresIn: expiresIn,
         });
 
+        // Verify process
         AuthModel.email_register_verif(
           email,
           token,
@@ -58,10 +51,11 @@ const AuthController = {
           (err, rows) => {
             if (err) return res.status(500).json({ message: err });
 
-            sendVerification(email, token, 'verify');
+            // User will receive email message for verification
+            sendVerification(email, token, "verify");
 
             return res.status(200).json({
-              message: 'Email has sent, please check your email for verify!',
+              message: "Email has sent, please check your email for verify!",
             });
           }
         );
@@ -69,14 +63,14 @@ const AuthController = {
     });
   },
 
-  // register process
+  // Forgot password process
   forgotPassword: (req, res) => {
     // console.log(req.body);
 
     const { email } = req.body;
 
     if (!email) {
-      return res.status(400).json({ message: 'Please fill in the email' });
+      return res.status(400).json({ message: "Please fill in the email" });
     }
 
     // Find user by email
@@ -86,22 +80,25 @@ const AuthController = {
       // console.log(user);
 
       if (user) {
+        // Create token
         const token = jwt.sign({ email }, process.env.SECRET_KEY, {
           expiresIn: expiresIn,
         });
 
+        // Verify process
         AuthModel.email_fp_verif(email, token, expiredAtFormat, (err, rows) => {
           if (err) return res.status(500).json({ message: err });
 
-          sendVerification(email, token, 'resetPassword');
+          // User will receive email message for verification
+          sendVerification(email, token, "resetPassword");
 
           return res.status(200).json({
-            message: 'Email has sent, please check your email for verify!',
+            message: "Email has sent, please check your email for verify!",
           });
         });
       } else {
         return res.status(400).json({
-          message: 'User not found',
+          message: "User not found",
         });
       }
     });
@@ -110,19 +107,22 @@ const AuthController = {
   verify_email: (req, res) => {
     const { email, token, action } = req.query;
     // console.log(action);
-    if (action === 'verify') {
+
+    // Email verify for register
+    if (action === "verify") {
       AuthModel.getemail(email, (err, rows) => {
         if (err) return res.status(500).json({ message: err });
 
         const user = rows[0];
 
         if (user.status === 0) {
-          return res.status(400).json({ message: 'Invalid' });
+          return res.status(400).json({ message: "Invalid" });
         }
 
         if (currentDate > user.expired_at) {
-          return res.status(400).json({ message: 'Token Expired' });
+          return res.status(400).json({ message: "Token Expired" });
         } else {
+          // Verify process
           jwt.verify(token, process.env.SECRET_KEY, (err) => {
             if (err) return res.status(500).json({ message: err });
 
@@ -132,7 +132,7 @@ const AuthController = {
               } else {
                 return res
                   .status(200)
-                  .json({ message: 'Email verified, you can register now!' });
+                  .json({ message: "Email verified, you can register now!" });
               }
             });
           });
@@ -140,18 +140,19 @@ const AuthController = {
       });
     }
 
-    if (action === 'resetPassword') {
+    // Email verify for forgot password
+    if (action === "resetPassword") {
       AuthModel.getrp(email, (err, rows) => {
         if (err) return res.status(500).json({ message: err });
 
         const user = rows[0];
 
         if (user.status === 0) {
-          return res.status(400).json({ message: 'Invalid' });
+          return res.status(400).json({ message: "Invalid" });
         }
 
         if (currentDate > user.expired_at) {
-          return res.status(400).json({ message: 'Token Expired' });
+          return res.status(400).json({ message: "Token Expired" });
         } else {
           jwt.verify(token, process.env.SECRET_KEY, (err) => {
             if (err) return res.status(500).json({ message: err });
@@ -161,7 +162,7 @@ const AuthController = {
                 return res.status(500).json({ message: err });
               } else {
                 return res.status(200).json({
-                  message: 'Email verified, you can reset password now!',
+                  message: "Email verified, you can reset password now!",
                 });
               }
             });
@@ -173,16 +174,14 @@ const AuthController = {
     // console.log(user);
   },
 
+  // Data completion process
   data_register: (req, res) => {
     const { name, email, education, phone_number, password } = req.body;
-    // const currentDate = new Date();
-    const dateFormat = format(currentDate, 'yyyy-MM-dd HH:mm:ss');
 
     if (!name || !email || !education || !phone_number || !password) {
-      return res.status(400).json({ message: 'Please fill in all fields!' });
+      return res.status(400).json({ message: "Please fill in all fields!" });
     }
 
-    // console.log(user);
     AuthModel.getemail(email, (err, rows) => {
       if (err) return res.status(500).json({ message: err });
 
@@ -210,34 +209,27 @@ const AuthController = {
 
         if (user.created_at !== null) {
           return res.status(400).json({
-            message: 'The email already registered, you can login now!',
+            message: "The email already registered, you can login now!",
           });
         }
 
         AuthModel.register(req.body, (err) => {
           if (err) return res.status(500).json({ message: err });
 
-          req.session.user = {
-            name: name,
-            email: email,
-            education: education,
-            phone_number: phone_number,
-          };
           return res
             .status(201)
-            .json({ message: 'Register success, you can login now!' });
+            .json({ message: "Register success, you can login now!" });
         });
       });
     });
   },
 
+  // Change password before login
   reset_password: (req, res) => {
     const { email, password } = req.body;
-    // const currentDate = new Date();
-    // const dateFormat = format(currentDate, 'yyyy-MM-dd HH:mm:ss');
 
     if (!email || !password) {
-      return res.status(400).json({ message: 'Please fill in all fields!' });
+      return res.status(400).json({ message: "Please fill in all fields!" });
     }
 
     AuthModel.getrp(email, (err, rows) => {
@@ -253,7 +245,7 @@ const AuthController = {
 
       if (resetPassUser.status === 0) {
         return res.status(400).json({
-          message: 'Please request reset password again!',
+          message: "Please request reset password again!",
         });
       }
 
@@ -262,14 +254,14 @@ const AuthController = {
 
         const user = rows[0];
 
-        if (!user) return res.status(400).json({ message: 'User not found!' });
+        if (!user) return res.status(400).json({ message: "User not found!" });
 
         // console.log(user);
 
         AuthModel.change_pass(req.body, (err) => {
           if (err) return res.status(500).json({ message: err });
 
-          return res.status(200).json({ message: 'Reset password success!' });
+          return res.status(200).json({ message: "Reset password success!" });
         });
       });
     });
@@ -282,7 +274,7 @@ const AuthController = {
     const { email, password } = req.body;
 
     if (!email || !password) {
-      return res.status(400).json({ message: 'Invalid email or password' });
+      return res.status(400).json({ message: "Invalid email or password" });
     }
 
     // Find user by email
@@ -290,38 +282,39 @@ const AuthController = {
       if (err) return res.status(500).json({ message: err });
 
       const user = rows[0];
-      // console.log(user.username);
+      // console.log(user);
 
       if (!user || !user.email) {
-        return res.status(400).json({ message: 'Invalid email or password' });
+        return res.status(400).json({ message: "Invalid email or password" });
       }
 
       // Password check
       bcrypt.compare(password, user.password, (err, result) => {
         if (err) return res.status(500).json({ message: err });
 
+        // Prepare payload data
+        const payload = {
+          name: user.name,
+          email: email,
+          education: user.education,
+          image: user.image,
+          phone_number: user.phone_number,
+        };
+
         if (result) {
-          // create token
-          const token = jwt.sign({ email }, process.env.SECRET_KEY, {
-            expiresIn: '1h',
+          // create token and send payload data
+          const token = jwt.sign({ payload }, process.env.SECRET_KEY, {
+            expiresIn: "1h",
           });
 
           AuthModel.login(email, token, (err) => {
             if (err) return res.status(500).json({ message: err });
-
-            // create session
-            req.session.user = {
-              name: user.name,
-              email: email,
-              education: user.education,
-              phone_number: user.phone_number,
-            };
-            return res.status(200).json({ message: 'Login Success!', token });
-            // res.redirect("/");
+            return res
+              .status(200)
+              .json({ message: "Login Success!", token, data: payload });
           });
         } else {
-          // req.flash("failed", failedInvalid);
-          return res.status(400).json({ message: 'Invalid email or password' });
+          return res.status(400).json({ message: "Invalid email or password" });
         }
       });
     });
@@ -329,11 +322,14 @@ const AuthController = {
 
   // logout process
   // Note :
-  // In postman, logout just using GET method without parameter, because this controller will destroy session after login session is created
-  // For JWT, this token isn't save in cookies or local storage in browser
+  // This process will be deleted remember_token column
   logout: (req, res) => {
-    req.session.destroy(); // destroy session
-    return res.status(200).json({ message: 'Logout Success!' });
+    AuthModel.logout(req.user.payload.email, (err) => {
+      if (err) return res.status(500).json({ message: err });
+
+      return res.status(200).json({ message: "Logout Success!" });
+    });
+    // req.session.destroy(); // destroy session
   },
 };
 
