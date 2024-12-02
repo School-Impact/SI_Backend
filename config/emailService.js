@@ -14,7 +14,7 @@ const transporter = nodemailer.createTransport({
 
 // Define the email options
 const sendVerification = (email, token, action) => {
-  const verifUrl = `http://localhost:${process.env.PORT}/auth/verify_email?email=${email}&token=${token}&action=${action}`;
+  const verifUrl = `${process.env.APP_URL}/auth/verify_email?email=${email}&token=${token}&action=${action}`;
 
   const mailOptions = {
     from: process.env.EMAIL, // Sender's email address
