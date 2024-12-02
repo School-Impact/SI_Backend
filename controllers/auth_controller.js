@@ -3,6 +3,7 @@ require("dotenv").config();
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const { sendVerification } = require("../config/emailService");
+const uploadImage = require("../helpers/helpers");
 const { format } = require("date-fns");
 
 const currentDate = new Date();
@@ -175,53 +176,69 @@ const AuthController = {
   },
 
   // Data completion process
-  data_register: (req, res) => {
+  data_register: async (req, res) => {
     const { name, email, education, phone_number, password } = req.body;
+
+    // console.log(req.file);
 
     if (!name || !email || !education || !phone_number || !password) {
       return res.status(400).json({ message: "Please fill in all fields!" });
     }
 
-    AuthModel.getemail(email, (err, rows) => {
-      if (err) return res.status(500).json({ message: err });
+    if (!req.file) {
+      return res.status(400).json({ message: "Please upload an image!" });
+    }
 
-      const verifiedUser = rows[0];
+    try {
+      const image = await uploadImage(req.file);
 
-      if (!verifiedUser)
-        return res.status(400).json({
-          message: "The email isn't registered yet, please register first!",
-        });
+      // console.log(image);
 
-      // console.log(user);
-
-      if (verifiedUser.status === 1) {
-        return res.status(400).json({
-          message: "The email isn't verified yet, please verify email first!",
-        });
-      }
-
-      AuthModel.getuser(email, (err, rows) => {
+      AuthModel.getemail(email, (err, rows) => {
         if (err) return res.status(500).json({ message: err });
 
-        const user = rows[0];
+        const verifiedUser = rows[0];
+
+        if (!verifiedUser)
+          return res.status(400).json({
+            message: "The email isn't registered yet, please register first!",
+          });
 
         // console.log(user);
 
-        if (user.created_at !== null) {
+        if (verifiedUser.status === 1) {
           return res.status(400).json({
-            message: "The email already registered, you can login now!",
+            message: "The email isn't verified yet, please verify email first!",
           });
         }
 
-        AuthModel.register(req.body, (err) => {
+        AuthModel.getuser(email, (err, rows) => {
           if (err) return res.status(500).json({ message: err });
 
-          return res
-            .status(201)
-            .json({ message: "Register success, you can login now!" });
+          const user = rows[0];
+
+          // console.log(user);
+
+          if (user.created_at !== null) {
+            return res.status(400).json({
+              message: "The email already registered, you can login now!",
+            });
+          }
+
+          const userData = { ...req.body, image: req.file.originalname };
+          AuthModel.register(userData, (err) => {
+            if (err) return res.status(500).json({ message: err });
+
+            return res
+              .status(201)
+              .json({ message: "Register success, you can login now!" });
+          });
         });
       });
-    });
+    } catch (err) {
+      // console.log(err.message);
+      return res.status(500).json({ message: err.message });
+    }
   },
 
   // Change password before login
@@ -284,6 +301,15 @@ const AuthController = {
       const user = rows[0];
       // console.log(user);
 
+      // Prepare payload data
+      const payload = {
+        name: user.name,
+        email: email,
+        education: user.education,
+        image: `https://storage.googleapis.com/${process.env.BUCKET_NAME}/${user.image}`,
+        phone_number: user.phone_number,
+      };
+
       if (!user || !user.email) {
         return res.status(400).json({ message: "Invalid email or password" });
       }
@@ -291,15 +317,6 @@ const AuthController = {
       // Password check
       bcrypt.compare(password, user.password, (err, result) => {
         if (err) return res.status(500).json({ message: err });
-
-        // Prepare payload data
-        const payload = {
-          name: user.name,
-          email: email,
-          education: user.education,
-          image: user.image,
-          phone_number: user.phone_number,
-        };
 
         if (result) {
           // create token and send payload data

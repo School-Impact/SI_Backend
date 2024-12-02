@@ -23,15 +23,17 @@ const AuthModel = {
 
   // Add
   register: async (data, callback) => {
-    const password = await bcrypt.hash(data.password, 10);
+    const { name, education, image, phone_number, email, password } = data;
+    const passwordHashed = await bcrypt.hash(password, 10);
     db.query(
       `UPDATE users SET
-      name = '${data.name}',
-      education = '${data.education}',
-      phone_number = '${data.phone_number}',
-      password = '${password}',
+      name = '${name}',
+      education = '${education}',
+      image = '${image}',
+      phone_number = '${phone_number}',
+      password = '${passwordHashed}',
       created_at = '${dateNowAtFormat}'
-      WHERE email = '${data.email}'`,
+      WHERE email = '${email}'`,
       callback
     );
   },
