@@ -34,7 +34,7 @@ app.use("/user", userRouter);
 
 // Root
 app.get("/", (req, res) => {
-  return res.status(200).json({ message: "Test 123" });
+  return res.status(200).json({ message: "Hallo" });
 });
 
 // Check if server is running
