@@ -1,5 +1,7 @@
 const UserModel = require("../models/user_model"); // call model
+const uploadImage = require("../helpers/helpers");
 require("dotenv").config();
+const jwt = require("jsonwebtoken");
 
 const UserController = {
   // Ensure user has login with middleware
@@ -63,34 +65,54 @@ const UserController = {
   // ========================================================================================
 
   // Update data
-  update: (req, res) => {
+  update: async (req, res) => {
     const { name, email, education, phone_number, password } = req.body;
 
-    if (!name || !email || !education || !image || !phone_number || !password) {
+    if (!name || !email || !education || !phone_number || !password) {
       return res.status(400).json({ message: "Please fill in all fields!" });
     }
 
-    // console.log(user);
+    if (!req.file) {
+      return res.status(400).json({ message: "Please upload an image!" });
+    }
 
-    UserModel.getuser(email, (err, rows) => {
-      if (err) return res.status(500).json({ message: err });
+    try {
+      await uploadImage(req.file);
 
-      const user = rows[0];
-
-      console.log(user);
-
-      if (!user) {
-        return res.status(400).json({
-          message: "User not found!",
-        });
-      }
-
-      UserModel.update(req.body, (err) => {
+      UserModel.getuser(email, (err, rows) => {
         if (err) return res.status(500).json({ message: err });
 
-        return res.status(201).json({ message: "Update Successfully" });
+        const user = rows[0];
+
+        if (!user) {
+          return res.status(400).json({
+            message: "User not found!",
+          });
+        }
+
+        const payload = {
+          name: name,
+          email: email,
+          education: education,
+          image: `https://storage.googleapis.com/${process.env.BUCKET_NAME}/${req.file.originalname}`,
+          phone_number: phone_number,
+        };
+
+        const userData = { ...req.body, image: req.file.originalname };
+        const token = jwt.sign({ payload }, process.env.SECRET_KEY, {
+          expiresIn: "1h",
+        });
+        UserModel.update(userData, token, (err) => {
+          if (err) return res.status(500).json({ message: err });
+
+          return res
+            .status(201)
+            .json({ message: "Update Successfully", token });
+        });
       });
-    });
+    } catch (err) {
+      return res.status(500).json({ message: err.message });
+    }
   },
 };
 
