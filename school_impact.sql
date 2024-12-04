@@ -72,7 +72,7 @@ CREATE TABLE `users` (
   `verified_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `provider_id` int(11) DEFAULT NULL,
   `provider_token` varchar(255) DEFAULT NULL,
-  `remember_token` varchar(255) NOT NULL,
+  `remember_token` text NOT NULL,
   `created_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
