@@ -21,49 +21,21 @@ const UserModel = {
   },
 
   // Update data
-  update: async (data, callback) => {
-    const password = await bcrypt.hash(data.password, 10);
+  update: async (data, token, callback) => {
+    const { name, education, image, phone_number, email, password } = data;
+    const passwordHashed = await bcrypt.hash(password, 10);
     db.query(
       `UPDATE users SET
-      name = '${data.name}',
-      education = '${data.education}',
-      phone_number = '${data.phone_number}',
-      password = '${password}',
-      created_at = '${dateNowAtFormat}'
-      WHERE email = '${data.email}'`,
+      name = '${name}',
+      education = '${education}',
+      image = '${image}',
+      phone_number = '${phone_number}',
+      password = '${passwordHashed}',
+      remember_token = '${token}'
+      WHERE email = '${email}'`,
       callback
     );
   },
-
-  // ========================================================================================
-  // Not finished yet
-  // change_pass: async (data, callback) => {
-  //   const password = await bcrypt.hash(data.password, 10);
-  //   db.query(
-  //     `UPDATE users SET
-  //     password = '${password}'
-  //     WHERE email = '${data.email}'`,
-  //     (err, result) => {
-  //       if (err) {
-  //         return callback(err);
-  //       }
-
-  //       db.query(
-  //         `UPDATE password_reset_tokens SET
-  //         status = '0'
-  //         WHERE email = '${data.email}'`,
-  //         (err, result) => {
-  //           if (err) {
-  //             return callback(err);
-  //           }
-
-  //           callback(null, result);
-  //         }
-  //       );
-  //     }
-  //   );
-  // },
-  // ========================================================================================
 };
 
 module.exports = UserModel; // export model
