@@ -58,6 +58,18 @@ const UserModel = {
       callback
     );
   },
+
+  savePrediction: (userId, major, interest, callback) => {
+    const currentDate = format(new Date(), "yyyy-MM-dd HH:mm:ss");
+    const query = `INSERT INTO predictions (user_id, majors, interest, created_at) VALUES (?, ?, ?, ?)`;
+    db.query(query, [userId, major, interest, currentDate], (err, result) => {
+      if (err) {
+        console.error("Error inserting prediction: ", err);
+        return callback(err);
+      }
+      callback(null, result);
+    });
+  },
 };
 
 module.exports = UserModel; // export model
