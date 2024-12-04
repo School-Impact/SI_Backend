@@ -36,6 +36,28 @@ const UserModel = {
       callback
     );
   },
+
+  getmajors: (category, callback) => {
+    db.query(
+      `SELECT name, description
+      FROM majors
+      WHERE category = '${category}'`,
+      callback
+    );
+  },
+
+  getdetailmajors: (callback) => {
+    db.query(
+      `SELECT majors.name AS major_name, majors.description, 
+      programs.name AS program_name, competencies.name AS competency_name
+      FROM majors
+      LEFT JOIN programs
+      ON majors.id = programs.major_id
+      LEFT JOIN competencies
+      ON programs.id = competencies.program_id`,
+      callback
+    );
+  },
 };
 
 module.exports = UserModel; // export model

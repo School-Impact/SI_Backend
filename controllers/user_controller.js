@@ -15,7 +15,7 @@ const UserController = {
           data: req.user.payload,
         });
       } else {
-        res.status(400).json({ message: "Please login first!" });
+        res.status(403).json({ message: "Please login first!" });
       }
     });
   },
@@ -31,38 +31,10 @@ const UserController = {
           data: req.user.payload,
         });
       } else {
-        res.status(400).json({ message: "Cannot get user data" });
+        res.status(403).json({ message: "Cannot get user data" });
       }
     });
   },
-
-  // ========================================================================================
-  // Not finished yet
-  changePassword: (req, res) => {
-    // console.log(req.body);
-
-    const { email } = req.body;
-
-    if (!email) {
-      return res.status(400).json({ message: "Please fill in the email" });
-    }
-
-    // Find user by email
-    UserModel.getuser(email, (err, rows) => {
-      if (err) return res.status(500).json({ message: err });
-      const user = rows[0];
-      console.log(user);
-
-      // if (user) {
-
-      // } else {
-      //   return res.status(400).json({
-      //     message: "User not found",
-      //   });
-      // }
-    });
-  },
-  // ========================================================================================
 
   // Update data
   update: async (req, res) => {
@@ -111,8 +83,78 @@ const UserController = {
         });
       });
     } catch (err) {
-      return res.status(500).json({ message: err.message });
+      return res.status(400).json({ message: err.message });
     }
+  },
+
+  majorsList: (req, res) => {
+    const category = req.query.category;
+    UserModel.getuser(req.user.payload.email, (err, rows) => {
+      if (err) return res.status(500).json({ message: err });
+      const user = rows[0];
+      if (user.remember_token !== "") {
+        UserModel.getmajors(category, (err, rows) => {
+          if (err) return res.status(500).json({ message: err });
+          res
+            .status(200)
+            .json({ message: "Get majors list success!", data: rows });
+        });
+      } else {
+        res.status(403).json({ message: "Please login first!" });
+      }
+    });
+  },
+
+  majorsDetail: (req, res) => {
+    UserModel.getuser(req.user.payload.email, (err, rows) => {
+      if (err) return res.status(400).json({ message: err });
+      const user = rows[0];
+      if (user.remember_token !== "") {
+        UserModel.getdetailmajors((err, rows) => {
+          if (err) return res.status(400).json({ message: err });
+
+          let majorsData = [];
+
+          rows.forEach((row) => {
+            let major = majorsData.find((m) => m.name === row.major_name);
+
+            if (!major) {
+              major = {
+                name: row.major_name,
+                description: row.description,
+                programs: [],
+              };
+              majorsData.push(major);
+            }
+
+            let program = major.programs.find(
+              (p) => p.name === row.program_name
+            );
+
+            if (!program) {
+              program = {
+                name: row.program_name,
+                competencies: [],
+              };
+              major.programs.push(program);
+            }
+
+            if (row.competency_name) {
+              program.competencies.push({
+                name: row.competency_name,
+              });
+            }
+          });
+
+          res.status(200).json({
+            message: "Get detail majors success!",
+            data: majorsData,
+          });
+        });
+      } else {
+        res.status(403).json({ message: "Please login first!" });
+      }
+    });
   },
 };
 
