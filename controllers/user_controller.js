@@ -36,6 +36,34 @@ const UserController = {
     });
   },
 
+  // ========================================================================================
+  // Not finished yet
+  changePassword: (req, res) => {
+    // console.log(req.body);
+
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: "Please fill in the email" });
+    }
+
+    // Find user by email
+    UserModel.getuser(email, (err, rows) => {
+      if (err) return res.status(500).json({ message: err });
+      const user = rows[0];
+      console.log(user);
+
+      // if (user) {
+
+      // } else {
+      //   return res.status(400).json({
+      //     message: "User not found",
+      //   });
+      // }
+    });
+  },
+  // ========================================================================================
+
   // Update data
   update: async (req, res) => {
     const { name, email, education, phone_number, password } = req.body;
@@ -106,54 +134,70 @@ const UserController = {
   },
 
   majorsDetail: (req, res) => {
+    const id = req.params.id; // Ambil ID dari path params
+    if (!id) {
+      return res.status(400).json({ message: "ID is required" });
+    }
+    console.log("Received ID:", id); // Debugging: Pastikan ID diterima dengan benar
+
     UserModel.getuser(req.user.payload.email, (err, rows) => {
-      if (err) return res.status(400).json({ message: err });
-      const user = rows[0];
-      if (user.remember_token !== "") {
-        UserModel.getdetailmajors((err, rows) => {
-          if (err) return res.status(400).json({ message: err });
-
-          let majorsData = [];
-
-          rows.forEach((row) => {
-            let major = majorsData.find((m) => m.name === row.major_name);
-
-            if (!major) {
-              major = {
-                name: row.major_name,
-                description: row.description,
-                programs: [],
-              };
-              majorsData.push(major);
-            }
-
-            let program = major.programs.find(
-              (p) => p.name === row.program_name
-            );
-
-            if (!program) {
-              program = {
-                name: row.program_name,
-                competencies: [],
-              };
-              major.programs.push(program);
-            }
-
-            if (row.competency_name) {
-              program.competencies.push({
-                name: row.competency_name,
-              });
-            }
-          });
-
-          res.status(200).json({
-            message: "Get detail majors success!",
-            data: majorsData,
-          });
-        });
-      } else {
-        res.status(403).json({ message: "Please login first!" });
+      if (err) {
+        return res
+          .status(400)
+          .json({ message: "Error fetching user", error: err });
       }
+
+      const user = rows[0];
+      if (!user || user.remember_token === "") {
+        return res.status(403).json({ message: "Please login first!" });
+      }
+
+      // Lanjutkan ke model untuk mendapatkan detail major
+      UserModel.getdetailmajors(id, (err, rows) => {
+        if (err) {
+          return res
+            .status(400)
+            .json({ message: "Error fetching major details", error: err });
+        }
+
+        // Proses data menjadi struktur yang diinginkan
+        const majorsData = [];
+        rows.forEach((row) => {
+          // Cari major berdasarkan nama
+          let major = majorsData.find((m) => m.name === row.major_name);
+          if (!major) {
+            major = {
+              name: row.major_name,
+              description: row.description,
+              programs: [],
+            };
+            majorsData.push(major);
+          }
+
+          // Cari program berdasarkan nama
+          let program = major.programs.find((p) => p.name === row.program_name);
+          if (!program) {
+            program = {
+              name: row.program_name,
+              competencies: [],
+            };
+            major.programs.push(program);
+          }
+
+          // Tambahkan competency jika ada
+          if (row.competency_name) {
+            program.competencies.push({
+              name: row.competency_name,
+            });
+          }
+        });
+
+        // Berikan respons dengan data yang sudah terstruktur
+        res.status(200).json({
+          message: "Get detail majors success!",
+          data: majorsData,
+        });
+      });
     });
   },
 };

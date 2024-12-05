@@ -11,7 +11,7 @@ router.get("/home", authenticateToken, UserController.home);
 router.get("/profile", authenticateToken, UserController.user);
 router.patch("/update", multerMid.single("image"), UserController.update);
 router.get("/majors", authenticateToken, UserController.majorsList);
-router.get("/majorsDetail", authenticateToken, UserController.majorsDetail);
+router.get("/majorsDetail/:id", authenticateToken, UserController.majorsDetail);
 
 router.post("/predict", authenticateToken, PredictController.predict);
 

@@ -39,14 +39,15 @@ const UserModel = {
 
   getmajors: (category, callback) => {
     db.query(
-      `SELECT name, description
+      `SELECT id, name, description
       FROM majors
       WHERE category = '${category}'`,
       callback
     );
   },
 
-  getdetailmajors: (callback) => {
+  getdetailmajors: (id, callback) => {
+    console.log("Executing query for ID:", id);
     db.query(
       `SELECT majors.name AS major_name, majors.description, 
       programs.name AS program_name, competencies.name AS competency_name
@@ -54,7 +55,8 @@ const UserModel = {
       LEFT JOIN programs
       ON majors.id = programs.major_id
       LEFT JOIN competencies
-      ON programs.id = competencies.program_id`,
+      ON programs.id = competencies.program_id 
+      WHERE majors.id = '${id}'`,
       callback
     );
   },
