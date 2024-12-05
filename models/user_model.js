@@ -21,8 +21,9 @@ const UserModel = {
   },
 
   // Update data
-  update: async (data, token, callback) => {
-    const { name, education, image, phone_number, email, password } = data;
+
+  update: async (userEmail, data, callback) => {
+    const { name, education, image, phone_number, password } = data;
     const passwordHashed = await bcrypt.hash(password, 10);
     db.query(
       `UPDATE users SET
@@ -30,9 +31,8 @@ const UserModel = {
       education = '${education}',
       image = '${image}',
       phone_number = '${phone_number}',
-      password = '${passwordHashed}',
-      remember_token = '${token}'
-      WHERE email = '${email}'`,
+      password = '${passwordHashed}'
+      WHERE email = '${userEmail}'`,
       callback
     );
   },

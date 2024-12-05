@@ -9,7 +9,12 @@ const multerMid = require("../middlewares/multer_middleware");
 // Create routes for controllers
 router.get("/home", authenticateToken, UserController.home);
 router.get("/profile", authenticateToken, UserController.user);
-router.patch("/update", multerMid.single("image"), UserController.update);
+router.post(
+  "/update",
+  authenticateToken,
+  multerMid.single("image"),
+  UserController.update
+);
 router.get("/majors", authenticateToken, UserController.majorsList);
 router.get("/majorsDetail/:id", authenticateToken, UserController.majorsDetail);
 

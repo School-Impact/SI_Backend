@@ -179,32 +179,35 @@ const AuthController = {
   data_register: async (req, res) => {
     const { name, email, education, phone_number, password } = req.body;
 
-    // console.log(req.file);
-
+    // Validasi input
     if (!name || !email || !education || !phone_number || !password) {
       return res.status(400).json({ message: "Please fill in all fields!" });
     }
 
-    if (!req.file) {
-      return res.status(400).json({ message: "Please upload an image!" });
-    }
-
     try {
-      const image = await uploadImage(req.file);
+      // Tangani file gambar jika ada
+      let image = null;
+      if (req.file) {
+        const sanitizedFileName = req.file.originalname
+          .trim()
+          .toLowerCase()
+          .replace(/\s+/g, "_")
+          .replace(/[^a-z0-9_.-]/g, "");
+        req.file.originalname = sanitizedFileName;
+        image = await uploadImage(req.file);
+      }
 
-      // console.log(image);
-
+      // Cek apakah email sudah terdaftar
       AuthModel.getemail(email, (err, rows) => {
         if (err) return res.status(500).json({ message: err });
 
         const verifiedUser = rows[0];
 
-        if (!verifiedUser)
+        if (!verifiedUser) {
           return res.status(400).json({
             message: "The email isn't registered yet, please register first!",
           });
-
-        // console.log(user);
+        }
 
         if (verifiedUser.status === 1) {
           return res.status(400).json({
@@ -212,12 +215,11 @@ const AuthController = {
           });
         }
 
+        // Cek apakah user sudah terdaftar
         AuthModel.getuser(email, (err, rows) => {
           if (err) return res.status(500).json({ message: err });
 
           const user = rows[0];
-
-          // console.log(user);
 
           if (user.created_at !== null) {
             return res.status(400).json({
@@ -225,7 +227,17 @@ const AuthController = {
             });
           }
 
-          const userData = { ...req.body, image: req.file.originalname };
+          // Buat objek userData
+          const userData = {
+            name,
+            email,
+            education,
+            phone_number,
+            password,
+            image: image ? image : null,
+          };
+
+          // Daftarkan user
           AuthModel.register(userData, (err) => {
             if (err) return res.status(500).json({ message: err });
 
@@ -236,7 +248,6 @@ const AuthController = {
         });
       });
     } catch (err) {
-      // console.log(err.message);
       return res.status(500).json({ message: err.message });
     }
   },
