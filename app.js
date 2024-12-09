@@ -3,7 +3,7 @@ require("dotenv").config();
 const port = process.env.PORT || 3000;
 const bodyParser = require("body-parser");
 const { PubSub } = require("@google-cloud/pubsub");
-const logRequests = require("./middleware/logging");
+const logRequests = require("./middlewares/logging");
 
 // const nodemailer = require("nodemailer");
 
