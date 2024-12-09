@@ -9,9 +9,25 @@ const dateNowAtFormat = format(currentDate, "yyyy-MM-dd HH:mm:ss");
 // Create model
 const UserModel = {
   read: (callback) => {
-    db.query("SELECT * FROM users", (err, result) => {
+    db.query("SELECT description FROM users", (err, result) => {
       if (err) throw err;
       callback(result);
+    });
+  },
+
+  //get Majors by name :
+  getMajors: (majorName, callback) => {
+    const query = `SELECT description FROM majors WHERE name = ?`;
+    db.query(query, [majorName], (err, result) => {
+      if (err) {
+        return callback(err);
+      }
+      // Asumsikan hasil query mengembalikan data dengan format [{ description: '...' }]
+      if (result.length > 0) {
+        callback(null, result[0]); // Mengirimkan deskripsi
+      } else {
+        callback(new Error("Major not found"));
+      }
     });
   },
 

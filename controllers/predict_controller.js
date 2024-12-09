@@ -33,24 +33,36 @@ const PredictController = {
         return res.status(400).json({ message: "Invalid prediction data!" });
       }
 
-      // Simpan hasil prediksi ke database
-      UserModel.savePrediction(
-        userId,
-        predictedLabel,
-        interest,
-        (err, result) => {
-          if (err) {
-            return res.status(500).json({
-              message: "Error saving prediction to database",
-              error: err.message,
+      // Mendapatkan deskripsi berdasarkan major yang diprediksi
+      UserModel.getMajors(predictedLabel, (err, major) => {
+        if (err) {
+          return res.status(500).json({ message: err.message });
+        }
+
+        // Simpan hasil prediksi ke database
+        UserModel.savePrediction(
+          userId,
+          predictedLabel,
+          interest,
+          (err, result) => {
+            if (err) {
+              return res.status(500).json({
+                message: "Error saving prediction to database",
+                error: err.message,
+              });
+            }
+            res.status(200).json({
+              message: "Prediction successfully saved!",
+              data: {
+                userId,
+                majors: predictedLabel,
+                interest,
+                description: major.description,
+              },
             });
           }
-          res.status(200).json({
-            message: "Prediction successfully saved!",
-            data: { userId, majors: predictedLabel, interest },
-          });
-        }
-      );
+        );
+      });
     } catch (err) {
       res
         .status(500)
