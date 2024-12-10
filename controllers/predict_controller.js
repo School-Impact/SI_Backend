@@ -39,11 +39,14 @@ const PredictController = {
           return res.status(500).json({ message: err.message });
         }
 
+        const majorId = major.id;
+
         // Simpan hasil prediksi ke database
         UserModel.savePrediction(
           userId,
           predictedLabel,
           interest,
+          majorId,
           (err, result) => {
             if (err) {
               return res.status(500).json({
@@ -57,6 +60,7 @@ const PredictController = {
                 userId,
                 majors: predictedLabel,
                 interest,
+                majorId: major.id,
                 description: major.description,
               },
             });

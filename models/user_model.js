@@ -17,7 +17,7 @@ const UserModel = {
 
   //get Majors by name :
   getMajors: (majorName, callback) => {
-    const query = `SELECT description FROM majors WHERE name = ?`;
+    const query = `SELECT id, description FROM majors WHERE name = ?`;
     db.query(query, [majorName], (err, result) => {
       if (err) {
         return callback(err);
@@ -77,16 +77,20 @@ const UserModel = {
     );
   },
 
-  savePrediction: (userId, major, interest, callback) => {
+  savePrediction: (userId, major, interest, majorId, callback) => {
     const currentDate = format(new Date(), "yyyy-MM-dd HH:mm:ss");
-    const query = `INSERT INTO predictions (user_id, majors, interest, created_at) VALUES (?, ?, ?, ?)`;
-    db.query(query, [userId, major, interest, currentDate], (err, result) => {
-      if (err) {
-        console.error("Error inserting prediction: ", err);
-        return callback(err);
+    const query = `INSERT INTO predictions (user_id, majors, interest, created_at, major_id) VALUES (?, ?, ?, ?, ?)`;
+    db.query(
+      query,
+      [userId, major, interest, currentDate, majorId],
+      (err, result) => {
+        if (err) {
+          console.error("Error inserting prediction: ", err);
+          return callback(err);
+        }
+        callback(null, result);
       }
-      callback(null, result);
-    });
+    );
   },
 };
 
