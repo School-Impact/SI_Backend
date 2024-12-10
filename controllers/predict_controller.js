@@ -61,7 +61,6 @@ const PredictController = {
                 majors: predictedLabel,
                 interest,
                 majorId: major.id,
-                description: major.description,
               },
             });
           }

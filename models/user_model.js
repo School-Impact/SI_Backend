@@ -17,7 +17,7 @@ const UserModel = {
 
   //get Majors by name :
   getMajors: (majorName, callback) => {
-    const query = `SELECT id, description FROM majors WHERE name = ?`;
+    const query = `SELECT id FROM majors WHERE name = ?`;
     db.query(query, [majorName], (err, result) => {
       if (err) {
         return callback(err);
